@@ -4,7 +4,8 @@ This file contains the DAN and function to construct the neural networks
 import torch
 from torch import nn
 from torch.distributions.multivariate_normal import MultivariateNormal as Mvn
-import numpy as np 
+import numpy as np
+from lin2d_exp import theta, sigma0
 
 class DAN(nn.Module):
     """
@@ -89,12 +90,18 @@ class Lin2d(nn.Module):
         nn.Module.__init__(self)
         # TODO
         # implement M
+        self.M = torch.Tensor([
+            [np.cos(theta), np.sin(theta)], 
+            [-np.sin(theta), np.cos(theta)]
+        ])
         
     def forward(self, x):
         # input x: (mb,x_dim)
         # output Mx: (mb,x_dim)
         # TODO
         Mx = torch.zeros(x.size())
+        for i in range(len(x)):
+            Mx[i] = torch.matmul(self.M, x[i])
         return Mx
     
 class EDO(nn.Module):

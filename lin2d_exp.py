@@ -2,6 +2,7 @@
 """
 import torch
 import manage_exp
+from math import pi
 
 
 list_k_update = [{}]
@@ -20,6 +21,7 @@ activation_classname = "nn.LeakyReLU"
 sigma0 = 0.01 # std of x0
 sigmap = sigma0 # std of prop
 sigmao = 10*sigma0 # std of obs
+theta = pi / 100
 
 # Default dict
 k = {}
