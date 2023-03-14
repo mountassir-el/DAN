@@ -55,7 +55,12 @@ def pre_train_full(net,b_size,h_dim,x_dim,
     print('Pre-train c at t=0')
     
     # TODO Generate x0 of batch size b_size at t=0
+    x0 = get_x0(b_size, x_dim, sigma0)
+
     # print out the emprical mean of x0
+    x0_mean = torch.mean(x0)
+    print("Empirical mean of x0 is : \n")
+    print(x0_mean)
     
     # create an optimizer optimizer0 for the paramerters in c
     optimizer0 = eval(optimizer_classname)(net.c.parameters(), **optimizer_kwargs)
