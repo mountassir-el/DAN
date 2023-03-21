@@ -178,6 +178,9 @@ class FcZero(nn.Module):
         # TODO correct an error        
         nn.Module.__init__(self)
         layers = (deep+1)*[dim]
+        # last_dim = layers[-1]
+        # layers.append(last_dim)
+
         self.lins = nn.ModuleList(
             [nn.Linear(d0, d1) for
              d0, d1 in zip(layers[:-1], layers[1:])])
@@ -243,11 +246,51 @@ class Gaussian(Mvn):
                 # TODO rewrite loc and scale_tril
                 # hint: use vec_to_inds
                 # vec.size(0) is the mini-batch size
+
+                # TODO
+
+                ### generate the mean
+                loc = vec[:, :x_dim]
+                # print(f"DEBUG: vec \n {vec}")
+                # print(f"DEBUG: loc \n {loc}")
+
+                ### generate the covariance matrix
+                # first we get the values needed to construct the matrix
+                std_values = vec[:, x_dim:]
+                # print(f"DEBUG: std_values \n {std_values}")
+
+                # then we initialize the matrix with zeros
                 mb = vec.size(0)
-                loc = torch.zeros(mb, x_dim)
                 scale_tril = torch.zeros(mb, x_dim, x_dim)
+
+                # then we get the line and column positions of each value
+                inds = self.vec_to_inds(x_dim, vec_dim)
+                line_indices, col_indices = inds
+                # print(f"DEBUG: line_indices \n {line_indices}")
+                # print(f"DEBUG: col_indices \n {col_indices}")
+                
+                # we then put the values in the corresponding positions of the matrix
+                # print(f"DEBUG: range \n {(std_values.shape[-1])}")
+
                 for i in range(mb):
-                    scale_tril[i,:,:] = torch.eye(x_dim)
+                    for val_idx in range(std_values.size(1)):
+                        # get the position
+                        line_idx = line_indices[val_idx]
+                        # print(f"DEBUG: line_idx \n {line_idx}")
+                        col_idx = col_indices[val_idx]
+                        # print(f"DEBUG: col_idx \n {col_idx}")
+
+                        # get the value 
+                        value = std_values[i, val_idx]
+                        if line_idx == col_idx:
+                            a, b = -8, 8
+                            value_hat = torch.Tensor([max(a, min(value, b))])
+                            value = torch.exp(value_hat)
+
+                        # put the value in the right position
+                        scale_tril[i, line_idx, col_idx] = value
+                # print(f"DEBUG: scale_tril \n {scale_tril}")
+
                 
             Mvn.__init__(self, loc=loc, scale_tril=scale_tril)
         

@@ -21,7 +21,7 @@ activation_classname = "nn.LeakyReLU"
 sigma0 = 0.01 # std of x0
 sigmap = sigma0 # std of prop
 sigmao = 10*sigma0 # std of obs
-theta = pi / 100
+theta = pi / 100 # added by Mountassir, used to compute Matrix M.
 
 # Default dict
 k = {}
