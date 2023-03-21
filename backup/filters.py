@@ -5,8 +5,7 @@ import torch
 from torch import nn
 from torch.distributions.multivariate_normal import MultivariateNormal as Mvn
 import numpy as np
-from lin2d_exp import theta, sigma0, b_size, x_dim
-from manage_exp import get_x0
+from lin2d_exp import theta, sigma0
 
 class DAN(nn.Module):
     """
@@ -24,22 +23,6 @@ class DAN(nn.Module):
             "LOGPDF_b": [],
             "LOGPDF_a": [],
             "LOSS": []}
-        
-    def estimate_log_loss(self, x, gaussian_dist):
-        log_loss = 0
-        
-        scale_tril = gaussian_dist.scale_tril
-        # scale_tril.requires_grad_()
-
-        loc = gaussian_dist.loc
-        # loc.requires_grad_()
-        
-        for i in range(len(x)):
-            diff_x_loc = torch.subtract(x[i], loc[i])
-            # print("DEBUG: x - loc", diff_x_loc.shape)
-            std_inverse = torch.inverse(torch.matmul(scale_tril[i], torch.transpose(scale_tril[i], 0, 1)))
-            # print("DEBUG: std_inverse", std_inverse.shape)
-            log_loss += torch.matmul(torch.matmul(diff_x_loc, std_inverse), diff_x_loc)
 
     def forward(self, ha, x, y):
         """
@@ -48,23 +31,13 @@ class DAN(nn.Module):
 
         # TODO
         # propagate past mem into prior mem
-        hb = self.b(ha)
-
-        # translate prior mem into prior pdf
-        pdf_a = self.c(ha)
-
+        # translate prior mem into prior pdf        
         # analyze prior mem
-        hb_hat = torch.cat((hb, y))
-        ha = self.a(hb_hat)
-
         # translate post mem into post pdf
-        pdf_b = self.c(hb)
-
-        logpdf_a = self.estimate_log_loss(x, pdf_a)
-        logpdf_b = self.estimate_log_loss(x, pdf_b)
+        logpdf_a = None
         
-        # TODO rewrite loss
-        loss = logpdf_a + logpdf_b
+        # TODO rewrite loss 
+        loss = 0
         
         # Compute scores
         with torch.no_grad():
@@ -164,7 +137,8 @@ class EDO(nn.Module):
         |   |   |  |
         """
         # TODO
-        dx = torch.zeros(x.size())        
+        dx = torch.zeros(x.size())
+        v = x.resh
         return x
 
     def forward(self, x):
@@ -205,7 +179,6 @@ class FcZero(nn.Module):
         # TODO correct an error        
         nn.Module.__init__(self)
         layers = (deep+1)*[dim]
-
         self.lins = nn.ModuleList(
             [nn.Linear(d0, d1) for
              d0, d1 in zip(layers[:-1], layers[1:])])
@@ -271,51 +244,11 @@ class Gaussian(Mvn):
                 # TODO rewrite loc and scale_tril
                 # hint: use vec_to_inds
                 # vec.size(0) is the mini-batch size
-
-                # TODO
-
-                ### generate the mean
-                loc = vec[:, :x_dim]
-                # print(f"DEBUG: vec \n {vec}")
-                # print(f"DEBUG: loc \n {loc}")
-
-                ### generate the covariance matrix
-                # first we get the values needed to construct the matrix
-                std_values = vec[:, x_dim:]
-                # print(f"DEBUG: std_values \n {std_values}")
-
-                # then we initialize the matrix with zeros
                 mb = vec.size(0)
+                loc = torch.zeros(mb, x_dim)
                 scale_tril = torch.zeros(mb, x_dim, x_dim)
-
-                # then we get the line and column positions of each value
-                inds = self.vec_to_inds(x_dim, vec_dim)
-                line_indices, col_indices = inds
-                # print(f"DEBUG: line_indices \n {line_indices}")
-                # print(f"DEBUG: col_indices \n {col_indices}")
-                
-                # we then put the values in the corresponding positions of the matrix
-                # print(f"DEBUG: range \n {(std_values.shape[-1])}")
-
                 for i in range(mb):
-                    for val_idx in range(std_values.size(1)):
-                        # get the position
-                        line_idx = line_indices[val_idx]
-                        # print(f"DEBUG: line_idx \n {line_idx}")
-                        col_idx = col_indices[val_idx]
-                        # print(f"DEBUG: col_idx \n {col_idx}")
-
-                        # get the value 
-                        value = std_values[i, val_idx]
-                        if line_idx == col_idx:
-                            a, b = -8, 8
-                            value_hat = torch.Tensor([max(a, min(value, b))])
-                            value = torch.exp(value_hat)
-
-                        # put the value in the right position
-                        scale_tril[i, line_idx, col_idx] = value
-                # print(f"DEBUG: scale_tril \n {scale_tril}")
-
+                    scale_tril[i,:,:] = torch.eye(x_dim)
                 
             Mvn.__init__(self, loc=loc, scale_tril=scale_tril)
         

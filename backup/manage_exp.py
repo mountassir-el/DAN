@@ -105,47 +105,22 @@ def train_full(net, b_size, h_dim, x_dim,
     # by minimizing the total loss
     """
     if not path.exists(direxp):
-        mkdir(direxp)
+        mkdir(direxp)          
     
     print('Train over full time 0..T with BPTT')
 
     # generate training data seq for t=0..T
     # TODO rewrite xt and yt
     x0 = get_x0(b_size, x_dim, sigma0)
-    x = x0
     xt = [None]
     yt = [None]
-
-    for i in range(len(T)):
-        # store current values of x and y
-        xt.append(prop(x).sample())
-        yt.append(obs(x).sample())
     
     # Train net using xt and yt, t = 1 .. T and x0
-    # TODO miminize total loss, by constructing optimizer and rewriting closure
-    optimizer = eval(optimizer_classname)(net.c.parameters(), **optimizer_kwargs) 
+    # TODO miminize total loss, by constructing optimizer and rewriting closure    
     ite = 0
     def closure():        
         # TODO
-        """ DEBUT """
-        loss_total = 0
-        optimizer.zero_grad() 
-
-        pdf_a0 = net.c(ha0)
-        scale_tril = pdf_a0.scale_tril
-        scale_tril.requires_grad_()
-
-        loc = pdf_a0.loc
-        loc.requires_grad_()
         
-        for i in range((b_size)):
-            diff_x_loc = torch.subtract(x0[i], loc[i])
-            # print("DEBUG: x - loc", diff_x_loc.shape)
-            std_inverse = torch.inverse(torch.matmul(scale_tril[i], torch.transpose(scale_tril[i], 0, 1)))
-            # print("DEBUG: std_inverse", std_inverse.shape)
-            logpdf_a0 += torch.matmul(torch.matmul(diff_x_loc, std_inverse), diff_x_loc)
-
-        """ FIN """        
         # Checkpoint
         nonlocal ite
         if ite == 1 or (ite % checkpoint == 0):
